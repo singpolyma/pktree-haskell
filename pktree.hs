@@ -1,6 +1,3 @@
--- http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.411
--- http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.883
-
 import Data.Tree
 import Data.Maybe
 import Data.List (find, partition)

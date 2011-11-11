@@ -1,0 +1,5 @@
+This project aims to implement the great spatial index data structure, the PK tree, in Haskell.  The data structure is covered in the following papers, but the code is much easier to read than they are:
+
+http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.411
+http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.883
+http://www.cs.umd.edu/~hjs/pubs/TR-4523.pdf
