@@ -54,18 +54,22 @@ divideOnLines lines n =
 	divisionFor Nothing = length lines
 	divisionFor (Just i) = i
 
-divideUp :: [[Float]] -> Int -> [PKTree] -> [[PKTree]]
-divideUp [] _ children = [children]
-divideUp (lines:ls) d children =
-	concat $ map (divideUp ls (d+1)) $ map (map (fst)) $ take ((length lines)+1) $ npartition (\(_,p) -> divideOnLines lines p) kids
+divideUp :: [Int] -> [Float] -> Point -> Int -> [PKTree] -> [[PKTree]]
+divideUp _ [] _ _ children = [children]
+divideUp _ _ [] _ children = [children]
+divideUp [] _ _ _ children = [children]
+divideUp (r:rs) (w:ws) (l:ls) d children =
+	concat $ map (divideUp rs ws ls (d+1)) $ take r $ npartition (\x -> floor (((nodeDim x d)-l) / w)) children
 	where
-	kids = map (\x -> (x,(snd (rootLabel x)) !! d)) children
+	divisions = (length ws) + 1
+	nodeDim n d = (snd (rootLabel n)) !! d
 
 insert :: PKTree -> Point -> [[PKTree]]
 insert (Node {rootLabel = (l, u), subForest = children}) p =
-	divideUp lines 0 newKids
+	divideUp r w l 0 newKids
 	where
-	lines = map dividingLines (zip3 l u r)
+	w = map (\(l,u,r) -> (u-l)/(fromIntegral r)) (zip3 l u r)
+--	lines = map dividingLines (zip3 l u r)
 	newKids = children -- insert' children p
 
 -- Takes the list of children from some node and inserts a Point
