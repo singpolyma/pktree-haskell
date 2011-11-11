@@ -3,26 +3,20 @@
 
 import Data.Tree
 import Data.Maybe
-import Data.List (find)
+import Data.List (find, partition)
 
 type Point = [Float] -- http://hackage.haskell.org/package/tagged-list ?
 type Rectangle = (Point, Point)
 type PKTree = Tree Rectangle
 
 k :: Int
-k = 3
+k = 2
 
 r :: [Int]
 r = [2,2]
 
 root :: PKTree
 root = cell ([-180, -90], [180, 90])
-
-test :: PKTree
-test = Node {
-	rootLabel = ([-180, -90], [180, 90]),
-	subForest = [cell ([-5,-5], [-6,-6]), cell ([5,5], [6,6])]
-}
 
 nreplace :: (a -> a) -> Int -> [a] -> [a]
 nreplace _ _ [] = error "Tried to replace a member not in the list"
@@ -47,12 +41,36 @@ divideUp r w l children =
 		(factor * floor ((x-l)/w), factor*(r+1))
 	dimData = zip3 r w l
 
+instantiateSubdivisions :: Rectangle -> [PKTree] -> [PKTree]
+instantiateSubdivisions (l, u) children =
+	concat rest ++ concatMap (\div ->
+		let newKids = instantiateSubdivisions (divBox div) div in
+			if length newKids < k then
+				newKids
+			else
+				[Node {
+					rootLabel = divBox div,
+					subForest = instantiateSubdivisions (divBox div) div
+				}]
+	) subdivisions
+	where
+	divBox = box . fst . rootLabel . head
+	box p = unzip $ map (\(x,w) ->
+		let low = w * fFloor (x/w) in
+			(low, low + w)
+		) (zip p w)
+	fFloor = fromIntegral . (floor :: Float -> Int)
+	(subdivisions, rest) =
+		partition (\x -> length x >= k) (divideUp r w l children)
+	w = map (\(l,u,r) -> (u-l) / fromIntegral r) (zip3 l u r)
+
 insert :: PKTree -> Point -> PKTree
 insert (Node {rootLabel = (l, u), subForest = children}) p =
-	Node { rootLabel = (l, u), subForest = newKids }
+	Node {
+		rootLabel = (l, u),
+		subForest = instantiateSubdivisions (l, u) newKids
+	}
 	where
-	subdivisions = filter (\x -> length x >= k) (divideUp r w l newKids)
-	w = map (\(l,u,r) -> (u-l) / fromIntegral r) (zip3 l u r)
 	newKids = insert' children p
 
 -- Takes the list of children from some node and inserts a Point
