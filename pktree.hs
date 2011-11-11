@@ -2,7 +2,6 @@
 -- http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.883
 
 import Data.Tree
-import Data.List (unfoldr, findIndex)
 
 type Point = [Float] -- http://hackage.haskell.org/package/tagged-list ?
 type Rectangle = (Point, Point)
@@ -15,16 +14,7 @@ r :: [Int]
 r = [2,2]
 
 root :: PKTree
-root = Node {
-	rootLabel = ([-180, -90], [180, 90]),
-	subForest = []
-}
-
-cell :: Rectangle -> PKTree
-cell r = Node {
-	rootLabel = r,
-	subForest = []
-}
+root = cell ([-180, -90], [180, 90])
 
 test :: PKTree
 test = Node {
@@ -41,35 +31,25 @@ nreplace f i (l:ls)
 npartition :: (a -> Int) -> [a] -> [[a]]
 npartition f = foldr (\x -> nreplace (x:) (f x)) (repeat [])
 
-dividingLines :: (Float, Float, Int) -> [Float]
-dividingLines (l, u, r) =
-	takeWhile (<u) $ unfoldr (\x -> Just (l+x, x+w)) w
+divideUp :: [Int] -> [Float] -> Point -> [PKTree] -> [[PKTree]]
+divideUp r w l children =
+	take (product r) $ npartition nodeBucket children
 	where
-	w = (u-l)/(fromIntegral r)
-
-divideOnLines :: [Float] -> Float -> Int
-divideOnLines lines n =
-	divisionFor (findIndex (n<=) lines)
-	where
-	divisionFor Nothing = length lines
-	divisionFor (Just i) = i
-
-divideUp :: [Int] -> [Float] -> Point -> Int -> [PKTree] -> [[PKTree]]
-divideUp _ [] _ _ children = [children]
-divideUp _ _ [] _ children = [children]
-divideUp [] _ _ _ children = [children]
-divideUp (r:rs) (w:ws) (l:ls) d children =
-	concat $ map (divideUp rs ws ls (d+1)) $ take r $ npartition (\x -> floor (((nodeDim x d)-l) / w)) children
-	where
-	divisions = (length ws) + 1
-	nodeDim n d = (snd (rootLabel n)) !! d
+	nodeBucket x = fst $ foldr bucket (0,1) (zip (nodePoint x) dimData)
+	nodePoint = snd . rootLabel
+	-- Subtract l, the lower bound, from x to make x positive
+	-- floor (x-l)/w is the current dimension bucket
+	-- factor is the multiplied size of previous dimensions
+	-- Multiply factor by bucket to vectorize
+	bucket (x, (r,w,l)) (_,factor) =
+		(factor*(floor ((x-l)/w)), factor*(r+1))
+	dimData = zip3 r w l
 
 insert :: PKTree -> Point -> [[PKTree]]
 insert (Node {rootLabel = (l, u), subForest = children}) p =
-	divideUp r w l 0 newKids
+	divideUp r w l newKids
 	where
 	w = map (\(l,u,r) -> (u-l)/(fromIntegral r)) (zip3 l u r)
---	lines = map dividingLines (zip3 l u r)
 	newKids = children -- insert' children p
 
 -- Takes the list of children from some node and inserts a Point
@@ -93,8 +73,14 @@ insert' children p
 	maybecontain f p = find (\x -> rectContains (rootLabel x) (p,p)) f
 -}
 
+cell :: Rectangle -> PKTree
+cell r = Node {
+	rootLabel = r,
+	subForest = []
+}
+
 pointCell :: Point -> PKTree
-pointCell p = Node {rootLabel = (p, p), subForest = []}
+pointCell p = cell (p, p)
 
 rectContains :: Rectangle -> Rectangle -> Bool
 rectContains (l, u) (l', u') =
