@@ -2,6 +2,8 @@
 -- http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.883
 
 import Data.Tree
+import Data.Maybe
+import Data.List (find)
 
 type Point = [Float] -- http://hackage.haskell.org/package/tagged-list ?
 type Rectangle = (Point, Point)
@@ -42,19 +44,19 @@ divideUp r w l children =
 	-- factor is the multiplied size of previous dimensions
 	-- Multiply factor by bucket to vectorize
 	bucket (x, (r,w,l)) (_,factor) =
-		(factor*(floor ((x-l)/w)), factor*(r+1))
+		(factor * floor ((x-l)/w), factor*(r+1))
 	dimData = zip3 r w l
 
-insert :: PKTree -> Point -> [[PKTree]]
+insert :: PKTree -> Point -> PKTree
 insert (Node {rootLabel = (l, u), subForest = children}) p =
-	divideUp r w l newKids
+	Node { rootLabel = (l, u), subForest = newKids }
 	where
-	w = map (\(l,u,r) -> (u-l)/(fromIntegral r)) (zip3 l u r)
-	newKids = children -- insert' children p
+	subdivisions = filter (\x -> length x >= k) (divideUp r w l newKids)
+	w = map (\(l,u,r) -> (u-l) / fromIntegral r) (zip3 l u r)
+	newKids = insert' children p
 
 -- Takes the list of children from some node and inserts a Point
 -- either as a child, or into a child
-{-
 insert' :: [PKTree] -> Point -> [PKTree]
 insert' children p
 	| children `contains` p =
@@ -71,7 +73,6 @@ insert' children p
 	where
 	contains f p = isJust (maybecontain f p)
 	maybecontain f p = find (\x -> rectContains (rootLabel x) (p,p)) f
--}
 
 cell :: Rectangle -> PKTree
 cell r = Node {
