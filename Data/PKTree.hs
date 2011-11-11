@@ -4,7 +4,7 @@
 --
 -- > import qualified Data.PKTree as PKTree
 -- > pkInsert = insert K [rx,ry,..]
-module Data.PKTree (Point(..), Rectangle(..), PKTree(..), cell, pointCell, insert) where
+module Data.PKTree (Point, Rectangle, PKTree, cell, pointCell, insert, radiusSearch) where
 
 import Data.Tree
 import Data.Maybe
@@ -116,3 +116,32 @@ instantiateDivisions k r (l, u) children =
 	(subdivisions, rest) =
 		partition (\x -> length x >= k) (divideUp r w l children)
 	w = map (\(l,u,r) -> (u-l) / fromIntegral r) (zip3 l u r)
+
+-- | Search for points in some hypercircle
+radiusSearch :: Point     -- ^ Centre of hypercircle
+                -> Float  -- ^ Radius of hypercircle
+                -> PKTree -- ^ Tree to search in
+                -> [Point]
+radiusSearch p r tree =
+	concatMap (\t -> case () of
+		_ | circleContains (rootLabel t) -> getLeaves t
+		  | circleIntersect (rootLabel t) ->
+			radiusSearch p r t
+		  | otherwise -> []
+	) (subForest tree)
+	where
+	getLeaves (Node {rootLabel = (l, u), subForest = children})
+		| l == u = [l]
+		| otherwise = concatMap getLeaves children
+	circleContains (l, u) =
+		sqdist (zip l p) <= sq r && sqdist (zip u p) <= sq r
+	-- Thanks to http://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection/402010#402010
+	circleIntersect rect =
+		let distWidth = zip (circleDistances rect) (halfRectDims rect) in
+			((not . or) (map (\(d,w) -> d > (w+r)) distWidth) &&
+			any (uncurry (<=)) distWidth) ||
+			sqdist distWidth <= sq r
+	sqdist = foldr (\(d,w) dist -> dist + sq (d-w)) 0
+	sq = (^(2::Int))
+	circleDistances rect@(l, _) = map (\(l,w,p) -> p - l - w) (zip3 l (halfRectDims rect) p)
+	halfRectDims (l, u) = map (\(l,u) -> (u-l)/2) (zip l u)
