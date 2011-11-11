@@ -1,9 +1,22 @@
+-- | Implementation of the PKTree spatial index data structure
+--
+-- The reccomended way to import this module is:
+--
+-- > import qualified Data.PKTree as PKTree
+-- > pkInsert = insert K [rx,ry,..]
+module Data.PKTree (Point(..), Rectangle(..), PKTree(..), cell, pointCell, insert) where
+
 import Data.Tree
 import Data.Maybe
 import Data.List (find, partition)
 
+-- | An n-dimensional point
 type Point = [Float] -- http://hackage.haskell.org/package/tagged-list ?
+
+-- | An n-dimensional hyperrectangle
 type Rectangle = (Point, Point)
+
+-- | A PKTree
 type PKTree = Tree Rectangle
 
 nreplace :: (a -> a) -> Int -> [a] -> [a]
@@ -23,16 +36,23 @@ rectContains (l, u) (l', u') =
 	compareEach _ _ [] = []
 	compareEach f (a:as) (b:bs) = f a b : compareEach f as bs
 
+-- | Contruct a tree with no children
 cell :: Rectangle -> PKTree
 cell rect = Node {
 	rootLabel = rect,
 	subForest = []
 }
 
+-- | Construct a leaf node representing a point
 pointCell :: Point -> PKTree
 pointCell p = cell (p, p)
 
-insert :: Int -> [Int] -> PKTree -> Point -> PKTree
+-- | Insert a point into a PKTree
+insert :: Int       -- ^ K, minimum number of nodes in subdivision
+          -> [Int]  -- ^ r, number of divisions in each dimension
+          -> PKTree -- ^ Root of PKTree
+          -> Point  -- ^ Point to insert
+          -> PKTree
 insert k r (Node {rootLabel = (l, u), subForest = children}) p =
 	Node {
 		rootLabel = (l, u),
