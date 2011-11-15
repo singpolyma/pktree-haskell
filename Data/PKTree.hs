@@ -16,8 +16,11 @@ type Point = [Float] -- http://hackage.haskell.org/package/tagged-list ?
 -- | An n-dimensional hyperrectangle
 type Rectangle = (Point, Point)
 
+-- | Inner nodes have rectangles, leaves are points and data
+data Node a = Inner Rectangle | Leaf Point a deriving (Eq, Show, Read)
+
 -- | A PKTree
-type PKTree = Tree Rectangle
+type PKTree a = Tree (Node a)
 
 nreplace :: (a -> a) -> Int -> [a] -> [a]
 nreplace _ _ [] = error "Tried to replace a member not in the list"
@@ -37,37 +40,50 @@ rectContains (l, u) (l', u') =
 	compareEach f (a:as) (b:bs) = f a b : compareEach f as bs
 
 -- | Contruct a tree with no children
-cell :: Rectangle -> PKTree
+cell :: Rectangle -> PKTree a
 cell rect = Node {
-	rootLabel = rect,
+	rootLabel = Inner rect,
 	subForest = []
 }
 
 -- | Construct a leaf node representing a point
-pointCell :: Point -> PKTree
-pointCell p = cell (p, p)
+pointCell :: Point -> a -> PKTree a
+pointCell p v = Node {
+	rootLabel = Leaf p v,
+	subForest = []
+}
+
+-- | Extract the rectangle from a node
+rect :: PKTree a -> Rectangle
+rect =
+	rect' . rootLabel
+	where
+	rect' (Inner r) = r
+	rect' (Leaf p _) = (p,p)
 
 -- | Insert a point into a PKTree
-insert :: Int       -- ^ K, minimum number of nodes in subdivision
-          -> [Int]  -- ^ r, number of divisions in each dimension
-          -> PKTree -- ^ Root of PKTree
-          -> Point  -- ^ Point to insert
-          -> PKTree
-insert k r (Node {rootLabel = (l, u), subForest = children}) p =
+insert :: (Eq a) =>
+          Int         -- ^ K, minimum number of nodes in subdivision
+          -> [Int]    -- ^ r, number of divisions in each dimension
+          -> PKTree a -- ^ Root of PKTree
+          -> Point    -- ^ Point to insert
+          -> a        -- ^ Data that goes with point
+          -> PKTree a
+insert k r n@(Node {rootLabel = lbl, subForest = children}) p v =
 	Node {
-		rootLabel = (l, u),
-		subForest = instantiateDivisions k r (l, u) newKids
+		rootLabel = lbl,
+		subForest = instantiateDivisions k r (rect n) newKids
 	}
 	where
-	newKids = insert' k r children p
+	newKids = insert' k r children p v
 
 -- Takes the list of children from some node and inserts a Point
 -- either as a child, or into a child
-insert' :: Int -> [Int] -> [PKTree] -> Point -> [PKTree]
-insert' k r children p
+insert' :: (Eq a) => Int -> [Int] -> [PKTree a] -> Point -> a -> [PKTree a]
+insert' k r children p v
 	| children `contains` p =
 		let (Just c) = children `maybecontain` p in
-			let c' = insert k r c p in
+			let c' = insert k r c p v in
 				-- If c' has less than k children, it is not k-instantiable
 				(if length (subForest c') < k then
 					subForest c'
@@ -75,17 +91,17 @@ insert' k r children p
 					[c']
 				) ++ filter (/= c) children
 	| otherwise =
-		pointCell p : children
+		pointCell p v : children
 	where
 	contains f p = isJust (maybecontain f p)
-	maybecontain f p = find (\x -> rectContains (rootLabel x) (p,p)) f
+	maybecontain f p = find (\x -> rectContains (rect x) (p,p)) f
 
-divideUp :: [Int] -> [Float] -> Point -> [PKTree] -> [[PKTree]]
+divideUp :: [Int] -> [Float] -> Point -> [PKTree a] -> [[PKTree a]]
 divideUp r w l children =
 	take (product r) $ npartition nodeBucket children
 	where
 	nodeBucket x = fst $ foldr bucket (0,1) (zip (nodePoint x) dimData)
-	nodePoint = snd . rootLabel
+	nodePoint = snd . rect
 	-- Subtract l, the lower bound, from x to make x positive
 	-- floor (x-l)/w is the current dimension bucket
 	-- factor is the multiplied size of previous dimensions
@@ -94,7 +110,7 @@ divideUp r w l children =
 		(factor * floor ((x-l)/w), factor*(r+1))
 	dimData = zip3 r w l
 
-instantiateDivisions :: Int -> [Int] -> Rectangle -> [PKTree] -> [PKTree]
+instantiateDivisions :: Int -> [Int] -> Rectangle -> [PKTree a] -> [PKTree a]
 instantiateDivisions k r (l, u) children =
 	concat rest ++ concatMap (\div ->
 		let newKids = instantiateDivisions k r (divBox div) div in
@@ -102,12 +118,12 @@ instantiateDivisions k r (l, u) children =
 				newKids
 			else
 				[Node {
-					rootLabel = divBox div,
+					rootLabel = Inner (divBox div),
 					subForest = newKids
 				}]
 	) subdivisions
 	where
-	divBox = box . fst . rootLabel . head
+	divBox = box . fst . rect . head
 	box p = unzip $ map (\(x,w) ->
 		let low = w * fFloor (x/w) in
 			(low, low + w)
@@ -118,21 +134,20 @@ instantiateDivisions k r (l, u) children =
 	w = map (\(l,u,r) -> (u-l) / fromIntegral r) (zip3 l u r)
 
 -- | Search for points in some hypercircle
-radiusSearch :: Point     -- ^ Centre of hypercircle
-                -> Float  -- ^ Radius of hypercircle
-                -> PKTree -- ^ Tree to search in
-                -> [Point]
+radiusSearch :: Point       -- ^ Centre of hypercircle
+                -> Float    -- ^ Radius of hypercircle
+                -> PKTree a -- ^ Tree to search in
+                -> [(Point, a)]
 radiusSearch p r tree =
 	concatMap (\t -> case () of
-		_ | circleContains (rootLabel t) -> getLeaves t
-		  | circleIntersect (rootLabel t) ->
-			radiusSearch p r t
+		_ | circleContains (rect t) -> getLeaves t
+		  | circleIntersect (rect t) -> radiusSearch p r t
 		  | otherwise -> []
 	) (subForest tree)
 	where
-	getLeaves (Node {rootLabel = (l, u), subForest = children})
-		| l == u = [l]
-		| otherwise = concatMap getLeaves children
+	getLeaves (Node {rootLabel = (Leaf p v), subForest = _}) = [(p, v)]
+	getLeaves (Node {rootLabel = _, subForest = children}) =
+		concatMap getLeaves children
 	circleContains (l, u) =
 		sqdist (zip l p) <= sq r && sqdist (zip u p) <= sq r
 	-- Thanks to http://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection/402010#402010
