@@ -2,12 +2,15 @@ GHCFLAGS=-Wall -XNoCPP -fno-warn-name-shadowing -XHaskell98
 HLINTFLAGS=-XHaskell98 -XNoCPP -i 'Use camelCase' -i 'Use String' -i 'Use head' -i 'Use string literal' -i 'Use list comprehension' --utf8
 VERSION=0.1
 
-.PHONY: all clean doc install
+.PHONY: all clean doc install shell
 
 all: report.html doc dist/build/libHSpktree-$(VERSION).a dist/pktree-$(VERSION).tar.gz
 
 install: dist/build/libHSpktree-$(VERSION).a
 	cabal install
+
+shell:
+	ghci $(GHCFLAGS)
 
 report.html: Data/PKTree.hs
 	-hlint $(HLINTFLAGS) --report Data
