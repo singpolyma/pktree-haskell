@@ -96,8 +96,8 @@ divideUp :: [Int] -> [Float] -> Point -> [PKTree a] -> [[PKTree a]]
 divideUp r w l children =
 	take (product r) $ npartition nodeBucket children
 	where
-	nodeBucket x = fst $ foldr bucket (0,1) (zip (nodePoint x) dimData)
-	nodePoint = snd . rect
+	nodeBucket x = fst $ foldr bucket (0,1) (zip (upperPoint x) dimData)
+	upperPoint = snd . rect
 	-- Subtract l, the lower bound, from x to make x positive
 	-- floor (x-l)/w is the current dimension bucket
 	-- factor is the multiplied size of previous dimensions
