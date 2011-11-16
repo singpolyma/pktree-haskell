@@ -89,7 +89,7 @@ insert' k r children p v
 	| otherwise =
 		pointCell p v : children
 	where
-	contains f p = isJust (maybecontain f p)
+	contains f = isJust . maybecontain f
 	maybecontain f p = find (\x -> rectContains (rect x) (p,p)) f
 
 divideUp :: [Int] -> [Float] -> Point -> [PKTree a] -> [[PKTree a]]
