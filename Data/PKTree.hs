@@ -33,11 +33,7 @@ npartition f = foldr (\x -> nreplace (x:) (f x)) (repeat [])
 
 rectContains :: Rectangle -> Rectangle -> Bool
 rectContains (l, u) (l', u') =
-	and (compareEach (<) l l') && and (compareEach (>) u u')
-	where
-	compareEach _ [] _ = []
-	compareEach _ _ [] = []
-	compareEach f (a:as) (b:bs) = f a b : compareEach f as bs
+	all (uncurry (<=)) (zip l l') && all (uncurry (>)) (zip u u')
 
 -- | Contruct a tree with no children
 cell :: Rectangle -> PKTree a
