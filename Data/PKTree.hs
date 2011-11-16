@@ -4,7 +4,7 @@
 --
 -- > import qualified Data.PKTree as PKTree
 -- > pkInsert = insert K [rx,ry,..]
-module Data.PKTree (Point, Rectangle, PKTree, cell, pointCell, insert, radiusSearch) where
+module Data.PKTree (Point, Rectangle, PKTree, cell, pointCell, rect, insert, radiusSearch) where
 
 import Data.Tree
 import Data.Maybe
