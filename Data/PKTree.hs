@@ -120,14 +120,14 @@ instantiateDivisions k r (l, u) children =
 	) subdivisions
 	where
 	divBox = box . fst . rect . head
-	box p = unzip $ map (\(x,w) ->
+	box p = unzip $ zipWith (\x w ->
 		let low = w * fFloor (x/w) in
 			(low, low + w)
-		) (zip p w)
+		) p w
 	fFloor = fromIntegral . (floor :: Float -> Int)
 	(subdivisions, rest) =
 		partition (\x -> length x >= k) (divideUp r w l children)
-	w = map (\(l,u,r) -> (u-l) / fromIntegral r) (zip3 l u r)
+	w = zipWith3 (\l u r -> (u-l) / fromIntegral r) l u r
 
 -- | Search for points in some hypercircle
 radiusSearch :: Point       -- ^ Centre of hypercircle
@@ -154,5 +154,5 @@ radiusSearch p r tree =
 			sqdist distWidth <= sq r
 	sqdist = foldr (\(d,w) dist -> dist + sq (d-w)) 0
 	sq = (^(2::Int))
-	circleDistances rect@(l, _) = map (\(l,w,p) -> p - l - w) (zip3 l (halfRectDims rect) p)
-	halfRectDims (l, u) = map (\(l,u) -> (u-l)/2) (zip l u)
+	circleDistances rect@(l, _) = zipWith3 (\l w p -> p - l - w) l (halfRectDims rect) p
+	halfRectDims (l, u) = zipWith (\l u -> (u-l)/2) l u
