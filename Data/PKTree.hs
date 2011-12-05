@@ -8,7 +8,7 @@ module Data.PKTree (Point, Rectangle, PKTree, cell, pointCell, rect, insert, rad
 
 import Data.Tree
 import Data.Maybe
-import Data.List (find, partition)
+import Data.List (find, partition, nubBy)
 
 -- | An n-dimensional point
 type Point = [Float] -- http://hackage.haskell.org/package/tagged-list ?
@@ -109,14 +109,16 @@ divideUp r w l children =
 instantiateDivisions :: Int -> [Int] -> Rectangle -> [PKTree a] -> [PKTree a]
 instantiateDivisions k r (l, u) children =
 	concat rest ++ concatMap (\div ->
-		let newKids = instantiateDivisions k r (divBox div) div in
-			if length newKids < k then
-				newKids
-			else
-				[Node {
-					rootLabel = Inner (divBox div),
-					subForest = newKids
-				}]
+		-- FIXME: Returns empty list on identical points without this
+		let uDiv = nubBy (\x y -> rect x == rect y) div in
+			let newKids = instantiateDivisions k r (divBox uDiv) uDiv in
+				if length newKids < k then
+					newKids
+				else
+					[Node {
+						rootLabel = Inner (divBox uDiv),
+						subForest = newKids
+					}]
 	) subdivisions
 	where
 	divBox = box . fst . rect . head
