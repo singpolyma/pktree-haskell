@@ -9,27 +9,37 @@ import Data.PKTree
 main :: IO ()
 main = mapM_ (\(n,p) -> do
 	putStrLn n
-	quickCheck p) [("K Instantiable",prop_k_instantiable)]
+	quickCheck p) [("Small, unsplit root",prop_small_unsplit_root), ("K Instantiable", prop_k_instantiable)]
 
 -- PROPERTIES
 
-prop_k_instantiable :: ReasonableR Int -> ShortList (ReasonableR Int) -> Gen Bool
-prop_k_instantiable (ReasonableR k) (ShortList r) = do
+prop_small_unsplit_root :: SmallPositive Int -> ShortList (SmallPositive Int) -> Gen Bool
+prop_small_unsplit_root (SmallPositive k) (ShortList r) = do
 	let r' = map getInt r
 	t <- tree k r' (k-1)
 	return (length (subForest t) == (k-1))
 	where
-	getInt (ReasonableR i) = i
+	getInt (SmallPositive i) = i
+
+prop_k_instantiable :: SmallPositive Int -> ShortList (SmallPositive Int) -> Gen Bool
+prop_k_instantiable (SmallPositive k) (ShortList r) = do
+	root <- sized $ tree k r'
+	return $ okNotSplit root && all check (subForest root)
+	where
+	getInt (SmallPositive i) = i
+	r' = map getInt r
+	maxNodes :: Integer
+	maxNodes = fromIntegral k * product (map (fromIntegral . getInt) r)
+	okNotSplit t = genericLength (subForest t) <= maxNodes
+	kInstantiable Node { rootLabel = Inner {}, subForest = kids } = length kids >= k
+	kInstantiable Node { rootLabel = Leaf {}} = True
+	check t = okNotSplit t && kInstantiable t && all check (subForest t)
 
 -- GENERATORS
 
-newtype NonOne a = NonOne a deriving (Eq, Ord, Show, Read)
-instance (Num a, Arbitrary a) => Arbitrary (NonOne a) where
-	arbitrary = fmap NonOne $ arbitrary `suchThat` (/= 1)
-
-newtype ReasonableR a = ReasonableR a deriving (Eq, Ord, Show, Read)
-instance (Random a, Num a, Arbitrary a) => Arbitrary (ReasonableR a) where
-	arbitrary = fmap ReasonableR $ choose (1, 100) `suchThat` (/= 1)
+newtype SmallPositive a = SmallPositive a deriving (Eq, Ord, Show, Read)
+instance (Random a, Num a, Arbitrary a) => Arbitrary (SmallPositive a) where
+	arbitrary = fmap SmallPositive $ choose (2, 100)
 
 newtype ShortList a = ShortList [a] deriving (Eq, Ord, Show, Read)
 instance (Arbitrary a) => Arbitrary (ShortList a) where
