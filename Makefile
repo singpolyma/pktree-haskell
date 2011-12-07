@@ -1,10 +1,16 @@
-GHCFLAGS=-Wall -XNoCPP -fno-warn-name-shadowing -XHaskell98
+GHCFLAGS=-Wall -XNoCPP -fno-warn-name-shadowing -XHaskell98 -O2
 HLINTFLAGS=-XHaskell98 -XNoCPP -i 'Use camelCase' -i 'Use String' -i 'Use head' -i 'Use string literal' -i 'Use list comprehension' --utf8
 VERSION=0.1
 
-.PHONY: all clean doc install shell
+.PHONY: all clean doc install shell test
 
 all: report.html doc dist/build/libHSpktree-$(VERSION).a dist/pktree-$(VERSION).tar.gz
+
+Tests: Tests.hs
+	ghc --make $(GHCFLAGS) $^ -o $@
+
+test: Tests
+	./Tests
 
 install: dist/build/libHSpktree-$(VERSION).a
 	cabal install
@@ -12,8 +18,8 @@ install: dist/build/libHSpktree-$(VERSION).a
 shell:
 	ghci $(GHCFLAGS)
 
-report.html: Data/PKTree.hs
-	-hlint $(HLINTFLAGS) --report Data
+report.html: Data/PKTree.hs Tests.hs
+	-hlint $(HLINTFLAGS) --report $^
 
 doc: dist/doc/html/pktree/index.html README
 
