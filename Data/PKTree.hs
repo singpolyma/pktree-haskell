@@ -8,7 +8,7 @@ module Data.PKTree (Point, Rectangle, PKTree, cell, pointCell, rect, insert, rad
 
 import Data.Tree
 import Data.Maybe
-import Data.List (find, partition, nubBy)
+import Data.List hiding (insert)
 
 -- | An n-dimensional point
 type Point = [Float] -- http://hackage.haskell.org/package/tagged-list ?
@@ -22,14 +22,11 @@ data Node a = Inner Rectangle | Leaf Point a deriving (Eq, Show, Read)
 -- | A PKTree
 type PKTree a = Tree (Node a)
 
-nreplace :: (a -> a) -> Int -> [a] -> [a]
-nreplace _ _ [] = error "Tried to replace a member not in the list"
-nreplace f i (l:ls)
-	| i == 0 = f l : ls
-	| otherwise = l : nreplace f (i - 1) ls
-
-npartition :: (a -> Int) -> [a] -> [[a]]
-npartition f = foldr (\x -> nreplace (x:) (f x)) (repeat [])
+npartition :: (Integral b) => (a -> b) -> [a] -> [[a]]
+npartition f =
+	map (map snd) . groupBy (onFst (==)) .  sortBy (onFst compare) . map (\x -> (f x, x))
+	where
+	onFst f (a,_) (b,_) = f a b
 
 rectContains :: Rectangle -> Rectangle -> Bool
 rectContains (l, u) (l', u') =
