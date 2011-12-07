@@ -90,18 +90,15 @@ insert' k r children p v
 	maybecontain f p = find (\x -> rectContains (rect x) (p,p)) f
 
 divideUp :: [Int] -> [Float] -> Point -> [PKTree a] -> [[PKTree a]]
-divideUp r w l children =
-	take (product r) $ npartition nodeBucket children
+divideUp r w l children = npartition nodeBucket children
 	where
-	nodeBucket x = fst $ foldr bucket (0,1) (zip (upperPoint x) dimData)
+	nodeBucket :: PKTree a -> Integer
+	nodeBucket x = sum $ zipWith4 bucket (upperPoint x) w l cumulDimSizes
+	cumulDimSizes = map product (inits (map fromIntegral r))
 	upperPoint = snd . rect
 	-- Subtract l, the lower bound, from x to make x positive
 	-- floor (x-l)/w is the current dimension bucket
-	-- factor is the multiplied size of previous dimensions
-	-- Multiply factor by bucket to vectorize
-	bucket (x, (r,w,l)) (_,factor) =
-		(factor * floor ((x-l)/w), factor*(r+1))
-	dimData = zip3 r w l
+	bucket x w l d = d * truncate ((x-l)/w)
 
 instantiateDivisions :: Int -> [Int] -> Rectangle -> [PKTree a] -> [PKTree a]
 instantiateDivisions k r (l, u) children =
