@@ -37,7 +37,7 @@ dist/setup-config: pktree.cabal
 
 clean:
 	find -name '*.o' -o -name '*.hi' | xargs $(RM)
-	$(RM) -r dist
+	$(RM) -r dist Tests
 
 dist/build/libHSpktree-$(VERSION).a: pktree.cabal dist/setup-config Data/PKTree.hs
 	cabal build
