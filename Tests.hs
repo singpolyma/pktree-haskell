@@ -1,5 +1,6 @@
 import Test.QuickCheck
 import Control.Monad
+import Data.Maybe
 import Data.Tree
 import Data.List hiding (insert)
 import System.Random
@@ -52,7 +53,15 @@ arbitraryPointIn :: Rectangle -> Gen Point
 arbitraryPointIn (l, u) = mapM choose (zip l u)
 
 uniquePointsIn :: Int -> Rectangle -> Gen [Point]
-uniquePointsIn n r = suchThat (mapM arbitraryPointIn (replicate n r)) (\x -> length x == length (nub x))
+uniquePointsIn n r = uniquePoints [] n
+	where
+	uniquePoints points 0 = return points
+	uniquePoints points remaining = do
+		point <- arbitraryPointIn r
+		if isNothing (find (== point) points) then do {
+			uniquePoints (point:points) (remaining-1);
+		} else
+			uniquePoints points remaining
 
 arbitraryRect :: Int -> Gen Rectangle
 arbitraryRect d = do
