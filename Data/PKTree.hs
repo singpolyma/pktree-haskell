@@ -4,7 +4,7 @@
 --
 -- > import qualified Data.PKTree as PKTree
 -- > pkInsert = insert K [rx,ry,..]
-module Data.PKTree (Point, Rectangle, PKTree, Node(..), cell, pointCell, rect, insert, radiusSearch) where
+module Data.PKTree (Point, Rectangle, PKTree, Node(..), cell, pointCell, rect, insert, radiusSearch, cubeSearch) where
 
 import Data.Tree
 import Data.Maybe
@@ -125,21 +125,27 @@ instantiateDivisions k r (l, u) children =
 		partition (\x -> length x >= k) (divideUp r w l children)
 	w = zipWith3 (\l u r -> (u-l) / fromIntegral r) l u r
 
+getLeaves :: PKTree a -> [(Point, a)]
+getLeaves (Node {rootLabel = (Leaf p v), subForest = _}) = [(p, v)]
+getLeaves (Node {rootLabel = _, subForest = children}) =
+	concatMap getLeaves children
+
+protoSearch :: (PKTree a -> Bool) -> (PKTree a -> Bool) -> PKTree a -> [(Point, a)]
+protoSearch contains intersect tree =
+	concatMap (\t -> case () of
+		_ | contains t -> getLeaves t
+		  | intersect t -> protoSearch contains intersect t
+		  | otherwise -> []
+	) (subForest tree)
+
 -- | Search for points in some hypercircle
 radiusSearch :: Point       -- ^ Centre of hypercircle
                 -> Float    -- ^ Radius of hypercircle
                 -> PKTree a -- ^ Tree to search in
                 -> [(Point, a)]
-radiusSearch p r tree =
-	concatMap (\t -> case () of
-		_ | circleContains (rect t) -> getLeaves t
-		  | circleIntersect (rect t) -> radiusSearch p r t
-		  | otherwise -> []
-	) (subForest tree)
+radiusSearch p r =
+	protoSearch (circleContains . rect) (circleIntersect . rect)
 	where
-	getLeaves (Node {rootLabel = (Leaf p v), subForest = _}) = [(p, v)]
-	getLeaves (Node {rootLabel = _, subForest = children}) =
-		concatMap getLeaves children
 	circleContains (l, u) =
 		sqdist (zip l p) <= sq r && sqdist (zip u p) <= sq r
 	-- Thanks to http://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection/402010#402010
@@ -152,3 +158,19 @@ radiusSearch p r tree =
 	sq = (^(2::Int))
 	circleDistances rect@(l, _) = zipWith3 (\l w p -> p - l - w) l (halfRectDims rect) p
 	halfRectDims (l, u) = zipWith (\l u -> (u-l)/2) l u
+
+-- | Search for points in some hypercube
+cubeSearch :: Rectangle   -- ^ Hypercube to use as bounds
+              -> Bool     -- ^ Open hypercube?
+              -> PKTree a -- ^ Tree to search in
+              -> [(Point, a)]
+cubeSearch (l,u) open =
+	protoSearch (contains . rect) (intersect . rect)
+	where
+	contains (l',u') = all (uncurry lt) (zip l l') && all (uncurry gt) (zip u u')
+	intersect (l',u') = and $ zipWith4 (\l u l' u' ->
+			lll l l' u || lll l' l u' || lll l u' u || lll l' u u'
+		) l u l' u'
+	lll a b c = lt a b && lt b c
+	lt = if open then (<=) else (<)
+	gt = if open then (>=) else (>)

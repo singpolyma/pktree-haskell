@@ -8,9 +8,12 @@ import System.Random
 import Data.PKTree
 
 main :: IO ()
-main = mapM_ (\(n,p) -> do
-	putStrLn n
-	quickCheck p) [("Small, unsplit root",prop_small_unsplit_root), ("K Instantiable", prop_k_instantiable)]
+main = mapM_ (\(n,p) -> putStrLn n >> quickCheck p) [
+		("Small, unsplit root",prop_small_unsplit_root),
+		("K Instantiable", prop_k_instantiable),
+		("cubeSearch", prop_cube_search),
+		("cubeSearch (plane)", prop_plane_search)
+	]
 
 -- PROPERTIES
 
@@ -33,6 +36,37 @@ prop_k_instantiable (SmallPositive k) (ShortList r) = do
 	kInstantiable Node { rootLabel = Inner {}, subForest = kids } = length kids >= k
 	kInstantiable Node { rootLabel = Leaf {}} = True
 	check t = okNotSplit t && kInstantiable t && all check (subForest t)
+
+prop_cube_search :: SmallPositive Int -> ShortList (SmallPositive Int) -> Gen Bool
+prop_cube_search (SmallPositive k) (ShortList r) = do
+	root <- sized $ tree k r'
+	therect <- arbitraryRect d
+	thepoint <- arbitraryPointIn therect
+	open <- arbitrary
+	return $ elem (thepoint,()) $
+		cubeSearch therect open $ insert k r' root thepoint ()
+	where
+	r' = map getInt r
+	d = length r
+
+prop_plane_search :: SmallPositive Int -> ShortList (SmallPositive Int) -> Gen Bool
+prop_plane_search (SmallPositive k) (ShortList r) = do
+	root <- sized $ tree k r'
+	therect <- arbitraryRect d
+	thepoint <- arbitraryPointIn therect
+	let rects = zipWith (\i v ->
+			(
+				replicate i (-inf) ++ v : replicate (d-i-1) (-inf),
+				replicate i inf ++ v : replicate (d-i-1) inf
+			)
+		) [0..] thepoint
+	let tree = insert k r' root thepoint ()
+	return $ all (elem (thepoint,())) $
+		map (\r -> cubeSearch r True tree) rects
+	where
+	inf = 1/0.0
+	r' = map getInt r
+	d = length r
 
 -- GENERATORS
 
