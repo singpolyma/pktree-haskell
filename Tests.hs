@@ -16,27 +16,28 @@ main = mapM_ (\(n,p) -> do
 
 prop_small_unsplit_root :: SmallPositive Int -> ShortList (SmallPositive Int) -> Gen Bool
 prop_small_unsplit_root (SmallPositive k) (ShortList r) = do
-	let r' = map getInt r
 	t <- tree k r' (k-1)
 	return (length (subForest t) == (k-1))
 	where
-	getInt (SmallPositive i) = i
+	r' = map getInt r
 
 prop_k_instantiable :: SmallPositive Int -> ShortList (SmallPositive Int) -> Gen Bool
 prop_k_instantiable (SmallPositive k) (ShortList r) = do
 	root <- sized $ tree k r'
 	return $ okNotSplit root && all check (subForest root)
 	where
-	getInt (SmallPositive i) = i
 	r' = map getInt r
 	maxNodes :: Integer
-	maxNodes = fromIntegral k * product (map (fromIntegral . getInt) r)
+	maxNodes = fromIntegral k * product (map fromIntegral r')
 	okNotSplit t = genericLength (subForest t) <= maxNodes
 	kInstantiable Node { rootLabel = Inner {}, subForest = kids } = length kids >= k
 	kInstantiable Node { rootLabel = Leaf {}} = True
 	check t = okNotSplit t && kInstantiable t && all check (subForest t)
 
 -- GENERATORS
+
+getInt :: SmallPositive a -> a
+getInt (SmallPositive i) = i
 
 newtype SmallPositive a = SmallPositive a deriving (Eq, Ord, Show, Read)
 instance (Random a, Num a, Arbitrary a) => Arbitrary (SmallPositive a) where
@@ -74,9 +75,9 @@ tree :: Int -> [Int] -> Int -> Gen (PKTree ())
 tree k r n = do
 	root <- arbitraryRect (length r)
 	points <- n `uniquePointsIn` root
-	let tree' ps = case ps of
-		[] -> return $ cell root
-		(x:xs) -> do
-			parent <- tree' xs
-			liftM (insert k r parent x) arbitrary
-	tree' points
+	tree' root points
+	where
+	tree' root [] = return $ cell root
+	tree' root (x:xs) = do
+		parent <- tree' root xs
+		liftM (insert k r parent x) arbitrary
