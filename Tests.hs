@@ -11,6 +11,7 @@ main :: IO ()
 main = mapM_ (\(n,p) -> putStrLn n >> quickCheck p) [
 		("Small, unsplit root",prop_small_unsplit_root),
 		("K Instantiable", prop_k_instantiable),
+		("radiusSearch", prop_radius_search),
 		("cubeSearch", prop_cube_search),
 		("cubeSearch (plane)", prop_plane_search)
 	]
@@ -36,6 +37,21 @@ prop_k_instantiable (SmallPositive k) (ShortList r) = do
 	kInstantiable Node { rootLabel = Inner {}, subForest = kids } = length kids >= k
 	kInstantiable Node { rootLabel = Leaf {}} = True
 	check t = okNotSplit t && kInstantiable t && all check (subForest t)
+
+prop_radius_search :: SmallPositive Int -> ShortList (SmallPositive Int) -> Gen Bool
+prop_radius_search (SmallPositive k) (ShortList r) = do
+	root <- sized $ tree k r'
+	thepoint <- arbitraryPointIn (rect root)
+	radius <- arbitrary `suchThat` (>0)
+	centre <- mapM (\x -> do
+			move <- choose (-radius, radius)
+			return $ x + (move/d)
+		) thepoint
+	return $ elem (thepoint,()) $
+		radiusSearch centre radius $ insert k r' root thepoint ()
+	where
+	r' = map getInt r
+	d = fromIntegral $ length r
 
 prop_cube_search :: SmallPositive Int -> ShortList (SmallPositive Int) -> Gen Bool
 prop_cube_search (SmallPositive k) (ShortList r) = do
