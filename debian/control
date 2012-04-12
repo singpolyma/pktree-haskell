@@ -1,0 +1,70 @@
+Source: haskell-pktree
+Priority: extra
+Section: haskell
+Maintainer: Stephen Paul Weber <singpolyma@singpolyma.net>
+Build-Depends: debhelper (>= 7.0),
+               haskell-devscripts (>= 0.8),
+               cdbs,
+               ghc,
+               ghc-prof
+Build-Depends-Indep: ghc-doc
+Standards-Version: 3.9.1
+Homepage: https://github.com/singpolyma/pktree-haskell
+
+Package: libghc-pktree-dev
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${haskell:Depends},
+         ${misc:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Provides: ${haskell:Provides}
+Description: Implementation of the PKTree spatial index data structure
+ This project aims to implement the great spatial index data structure, the PK tree, in Haskell.  The data structure is covered in the following papers, but the code is much easier to read than they are:
+ .
+ <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.411>
+ <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.883>
+ <http://www.cs.umd.edu/~hjs/pubs/TR-4523.pdf>
+ .
+  Author: Stephen Paul Weber <singpolyma@singpolyma.net>
+  Upstream-Maintainer: Stephen Paul Weber <singpolyma@singpolyma.net>
+ .
+ This package contains the normal library files.
+
+Package: libghc-pktree-prof
+Architecture: any
+Depends: ${haskell:Depends},
+         ${misc:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Provides: ${haskell:Provides}
+Description: Implementation of the PKTree spatial index data structure
+ This project aims to implement the great spatial index data structure, the PK tree, in Haskell.  The data structure is covered in the following papers, but the code is much easier to read than they are:
+ .
+ <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.411>
+ <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.883>
+ <http://www.cs.umd.edu/~hjs/pubs/TR-4523.pdf>
+ .
+  Author: Stephen Paul Weber <singpolyma@singpolyma.net>
+  Upstream-Maintainer: Stephen Paul Weber <singpolyma@singpolyma.net>
+ .
+ This package contains the libraries compiled with profiling enabled.
+
+Package: libghc-pktree-doc
+Architecture: all
+Section: doc
+Depends: ${haskell:Depends},
+         ${misc:Depends}
+Recommends: ${haskell:Recommends}
+Suggests: ${haskell:Suggests}
+Description: Implementation of the PKTree spatial index data structure
+ This project aims to implement the great spatial index data structure, the PK tree, in Haskell.  The data structure is covered in the following papers, but the code is much easier to read than they are:
+ .
+ <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.411>
+ <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.21.883>
+ <http://www.cs.umd.edu/~hjs/pubs/TR-4523.pdf>
+ .
+  Author: Stephen Paul Weber <singpolyma@singpolyma.net>
+  Upstream-Maintainer: Stephen Paul Weber <singpolyma@singpolyma.net>
+ .
+ This package contains the documentation files.

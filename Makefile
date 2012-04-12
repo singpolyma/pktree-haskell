@@ -1,8 +1,8 @@
 GHCFLAGS=-Wall -XNoCPP -fno-warn-name-shadowing -XHaskell98 -O2
 HLINTFLAGS=-XHaskell98 -XNoCPP -i 'Use camelCase' -i 'Use String' -i 'Use head' -i 'Use string literal' -i 'Use list comprehension' --utf8
-VERSION=0.1
+VERSION=0.2
 
-.PHONY: all clean doc install shell test
+.PHONY: all clean doc install shell test debian
 
 all: report.html doc dist/build/libHSpktree-$(VERSION).a dist/pktree-$(VERSION).tar.gz
 
@@ -14,6 +14,8 @@ test: Tests
 
 install: dist/build/libHSpktree-$(VERSION).a
 	cabal install
+
+debian: debian/control
 
 shell:
 	ghci $(GHCFLAGS)
@@ -38,6 +40,9 @@ dist/setup-config: pktree.cabal
 clean:
 	find -name '*.o' -o -name '*.hi' | xargs $(RM)
 	$(RM) -r dist Tests
+
+debian/control: pktree.cabal
+	cabal-debian --update-debianization
 
 dist/build/libHSpktree-$(VERSION).a: pktree.cabal dist/setup-config Data/PKTree.hs
 	cabal build
